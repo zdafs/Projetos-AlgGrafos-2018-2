@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef struct adjVertex{
     int id;
@@ -16,12 +17,25 @@ typedef struct {
     AdjVertex* tail;
 } AdjList;
 
+typedef struct {
+    int* v;
+    int begin;
+    int end;
+} Queue;
+
 
 AdjList* genGraph(int, int);
 void initAdjListVec(AdjList*, int);
 void addToAdjList(AdjList*, int, int);
 void initAdjVertex(AdjVertex*, int);
 void freeGraph(AdjList*, int);
+bool graphIsBi(AdjList*, int);
+void initQueue(Queue*, int);
+void initColorVec(int*, int);
+void insertInQueue(Queue*, int);
+bool queueIsEmpty(Queue*);
+int removeFromQueue(Queue*);
+void freeQueue(Queue*);
 
 
 int main(){
@@ -31,16 +45,10 @@ int main(){
     scanf("%d %d", &n, &m);
     while(n!=0 ||m!=0 ){
         adjListVec = genGraph(n, m);
-        int i;
-        for(i=0; i<n; i++){
-            printf("%d: ", i+1);
-            AdjVertex* v = adjListVec[i].head;
-            while(v!=NULL){
-                printf("%d->", v->id+1);
-                v = v->prox;
-            }
-            printf("N\n");
-        }
+        if(graphIsBi(adjListVec, n))
+            printf("SIM\n");
+        else
+            printf("NAO\n");
         freeGraph(adjListVec, n);
         scanf("%d %d", &n, &m);
     }
@@ -101,4 +109,71 @@ void freeGraph(AdjList* vec, int n){
         }
     }
     free(vec);
+}
+
+bool graphIsBi(AdjList* adjVec, int n){
+    Queue q;
+    int* colorVec = (int*) malloc(n*sizeof(int));
+    int i=0;
+    initQueue(&q, n);
+    initColorVec(colorVec, n);
+
+    insertInQueue(&q, 0);
+    colorVec[0] = 0;
+    while(i<n){
+        while(!queueIsEmpty(&q)){
+            int vertexId = removeFromQueue(&q);
+            AdjVertex* v = adjVec[vertexId].head;
+            while(v!=NULL){
+                if(colorVec[v->id]==colorVec[vertexId]){
+                    return 0;
+                }
+                if(colorVec[v->id]==-1){
+                    colorVec[v->id] = !colorVec[vertexId];
+                    insertInQueue(&q, v->id);
+                }
+                v = v->prox;
+            }
+        }
+        if(colorVec[i]==-1){
+            insertInQueue(&q, i);
+            colorVec[i] = 0;
+        }
+        i++;
+    }
+    freeQueue(&q);
+    free(colorVec);
+    return 1;
+}
+
+void initQueue(Queue* q, int n){
+    q->v = (int*) malloc(n*sizeof(int));
+    q->begin = 0;
+    q->end = 0;
+}
+
+void initColorVec(int* vec, int n){
+    int i;
+    for(i=0; i<n; i++){
+        vec[i] = -1;
+    }
+}
+
+void insertInQueue(Queue* q, int t){
+    q->v[q->end] = t;
+    q->end = q->end + 1;
+}
+
+bool queueIsEmpty(Queue* q){
+    return(q->begin==q->end);
+}
+
+int removeFromQueue(Queue* q){
+    int r = q->v[q->begin];
+    q->begin = q->begin + 1;
+    return r;
+}
+
+void freeQueue(Queue* q){
+    free(q->v);
 }
