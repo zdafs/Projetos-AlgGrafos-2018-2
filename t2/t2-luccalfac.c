@@ -29,9 +29,9 @@ void initAdjListVec(AdjList*, int);
 void addToAdjList(AdjList*, int, int);
 void initAdjVertex(AdjVertex*, int);
 void freeGraph(AdjList*, int);
-bool graphIsBi(AdjList*, int);
+int erdosNumber(AdjList*, int);
 void initQueue(Queue*, int);
-void initColorVec(int*, int);
+void initVecs(int*, int*, int);
 void insertInQueue(Queue*, int);
 bool queueIsEmpty(Queue*);
 int removeFromQueue(Queue*);
@@ -39,16 +39,17 @@ void freeQueue(Queue*);
 
 
 int main(){
-    int n, m;
+    int n, m, res;
     AdjList* adjListVec;
 
     scanf("%d %d", &n, &m);
     while(n!=0 ||m!=0 ){
         adjListVec = genGraph(n, m);
-        if(graphIsBi(adjListVec, n))
-            printf("SIM\n");
+        res = erdosNumber(adjListVec, n);
+        if(res==-1)
+            printf("infinito\n");
         else
-            printf("NAO\n");
+            printf("%d\n", res);
         freeGraph(adjListVec, n);
         scanf("%d %d", &n, &m);
     }
@@ -63,8 +64,8 @@ AdjList* genGraph(int n, int m){
     initAdjListVec(adjListVec, n);
     while(m>0){
         scanf("%d %d", &u, &v);
-        addToAdjList(adjListVec, u-1, v-1);
-        addToAdjList(adjListVec, v-1, u-1);
+        addToAdjList(adjListVec, u, v);
+        addToAdjList(adjListVec, v, u);
         m--;
     }
 
@@ -111,39 +112,42 @@ void freeGraph(AdjList* vec, int n){
     free(vec);
 }
 
-bool graphIsBi(AdjList* adjVec, int n){
+int erdosNumber(AdjList* adjVec, int n){
     Queue q;
     int* colorVec = (int*) malloc(n*sizeof(int));
-    int i=0;
+    int* distVec = (int*) malloc(n*sizeof(int));
+    int max=0;
     initQueue(&q, n);
-    initColorVec(colorVec, n);
+    initVecs(colorVec, distVec, n);
 
     insertInQueue(&q, 0);
     colorVec[0] = 0;
-    while(i<n){
-        while(!queueIsEmpty(&q)){
-            int vertexId = removeFromQueue(&q);
-            AdjVertex* v = adjVec[vertexId].head;
-            while(v!=NULL){
-                if(colorVec[v->id]==colorVec[vertexId]){
-                    return 0;
-                }
-                if(colorVec[v->id]==-1){
-                    colorVec[v->id] = !colorVec[vertexId];
-                    insertInQueue(&q, v->id);
-                }
-                v = v->prox;
+    distVec[0] = 0;
+    while(!queueIsEmpty(&q)){
+        int vertexId = removeFromQueue(&q);
+        AdjVertex* v = adjVec[vertexId].head;
+        while(v!=NULL){
+            if(colorVec[v->id]==-1){
+                colorVec[v->id] = 0;
+                distVec[v->id] = distVec[vertexId] + 1;
+                if(max<distVec[v->id])
+                    max = distVec[v->id];
+                insertInQueue(&q, v->id);
             }
+            v = v->prox;
         }
-        if(colorVec[i]==-1){
-            insertInQueue(&q, i);
-            colorVec[i] = 0;
+        colorVec[vertexId] = 1;
+    }
+    for(int i=0; i<n; i++){
+        if(distVec[i]==-1){
+            max = -1;
+            break;
         }
-        i++;
     }
     freeQueue(&q);
     free(colorVec);
-    return 1;
+    free(distVec);
+    return max;
 }
 
 void initQueue(Queue* q, int n){
@@ -152,10 +156,11 @@ void initQueue(Queue* q, int n){
     q->end = 0;
 }
 
-void initColorVec(int* vec, int n){
+void initVecs(int* vec1, int* vec2, int n){
     int i;
     for(i=0; i<n; i++){
-        vec[i] = -1;
+        vec1[i] = -1;
+        vec2[i] = -1;
     }
 }
 
